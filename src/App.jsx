@@ -160,15 +160,11 @@ export default function App() {
       "=== ADS.TXT COMPARACIÓN ===",
       "",
       `Total A: ${result.a.entries.size} | Total B: ${result.b.entries.size}`,
-      `Coincidencias: ${result.common.length}`,
-      `Solo en A: ${result.onlyInA.length}`,
-      `Solo en B: ${result.onlyInB.length}`,
+      `Ya cargadas: ${result.common.length}`,
+      `Faltan en el seller: ${result.onlyInA.length}`,
       "",
-      "--- SOLO EN A ---",
+      "--- FALTAN EN EL SELLER ---",
       ...result.onlyInA,
-      "",
-      "--- SOLO EN B ---",
-      ...result.onlyInB,
     ];
     const blob = new Blob([lines.join("\n")], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
@@ -200,7 +196,7 @@ export default function App() {
             📄 Ads.txt Validator
           </h1>
           <p style={{ margin: "6px 0 0", color: COLORS.muted, fontSize: 14 }}>
-            Pegá dos archivos ads.txt y detectá entradas faltantes, extras y duplicados
+            En <b>A</b> pegá tus líneas de demanda. En <b>B</b> pegá el ads.txt completo del seller. Detectamos cuáles de tus líneas faltan en el archivo del seller.
           </p>
         </div>
 
@@ -208,10 +204,15 @@ export default function App() {
         {!compared && (
           <>
             <div style={{ display: "flex", gap: 16, marginBottom: 16, flexWrap: "wrap" }}>
-              {[["A", textA, setTextA], ["B", textB, setTextB]].map(([label, val, setter]) => (
+              {[
+                ["A", textA, setTextA, "Tus líneas de demanda", "Pegá acá SOLO las líneas que el seller debería tener (las tuyas)..."],
+                ["B", textB, setTextB, "ads.txt del seller", "Pegá acá el archivo ads.txt COMPLETO del seller..."],
+              ].map(([label, val, setter, title, ph]) => (
                 <div key={label} style={{ flex: 1, minWidth: 280 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                    <span style={{ fontWeight: 700, fontSize: 14 }}>Archivo {label}</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, alignItems: "baseline" }}>
+                    <span style={{ fontWeight: 700, fontSize: 14 }}>
+                      Archivo {label} · <span style={{ color: COLORS.accent }}>{title}</span>
+                    </span>
                     <span style={{ color: COLORS.muted, fontSize: 12 }}>
                       {val.split("\n").filter(l => l.trim() && !l.trim().startsWith("#")).length} líneas
                     </span>
@@ -219,7 +220,7 @@ export default function App() {
                   <textarea
                     value={val}
                     onChange={e => setter(e.target.value)}
-                    placeholder={`Pegá el contenido del ads.txt ${label} acá...`}
+                    placeholder={ph}
                     style={{
                       width: "100%",
                       height: 280,
@@ -263,11 +264,10 @@ export default function App() {
           <>
             {/* Stats */}
             <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
-              <StatBox label="Total A" value={result.a.entries.size} color={COLORS.blue} />
-              <StatBox label="Total B" value={result.b.entries.size} color={COLORS.blue} />
-              <StatBox label="Coincidencias" value={result.common.length} color={COLORS.green} />
-              <StatBox label="Solo en A" value={result.onlyInA.length} color={COLORS.yellow} />
-              <StatBox label="Solo en B" value={result.onlyInB.length} color={COLORS.red} />
+              <StatBox label="Tus líneas (A)" value={result.a.entries.size} color={COLORS.blue} />
+              <StatBox label="Líneas del seller (B)" value={result.b.entries.size} color={COLORS.blue} />
+              <StatBox label="Ya cargadas" value={result.common.length} color={COLORS.green} />
+              <StatBox label="Faltan en el seller" value={result.onlyInA.length} color={COLORS.yellow} />
               <StatBox label="Dupes A" value={result.a.duplicates.size} color={COLORS.muted} />
               <StatBox label="Dupes B" value={result.b.duplicates.size} color={COLORS.muted} />
             </div>
@@ -351,9 +351,8 @@ export default function App() {
             {tab === "diff" && (
               <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
                 {[
-                  ["Solo en A", result.onlyInA, COLORS.yellow, "Presentes en A pero ausentes en B"],
-                  ["Solo en B", result.onlyInB, COLORS.red, "Presentes en B pero ausentes en A"],
-                  ["Coincidencias", result.common, COLORS.green, "Presentes en ambos archivos"],
+                  ["Faltan en el seller", result.onlyInA, COLORS.yellow, "Tus líneas de demanda que el seller AÚN NO tiene en su ads.txt"],
+                  ["Ya cargadas", result.common, COLORS.green, "Tus líneas que el seller YA tiene cargadas correctamente"],
                 ].map(([label, entries, color, desc]) => (
                   <div key={label} style={{
                     flex: 1,
