@@ -33,7 +33,7 @@ function parseAdsTxt(raw) {
 
     const normalized = noComment
       .toLowerCase()
-      .replace(/\s*,\s*/g, ",")
+      .replace(/\s*,\s*/g, ", ")
       .replace(/\s+/g, " ")
       .trim();
     if (!normalized) continue;
