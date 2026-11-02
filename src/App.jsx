@@ -1,124 +1,11 @@
 import { useState, useMemo } from "react";
-
-const COLORS = {
-  bg: "#0f1117",
-  card: "#1a1d27",
-  border: "#2a2d3a",
-  accent: "#6c63ff",
-  green: "#22c55e",
-  red: "#ef4444",
-  yellow: "#f59e0b",
-  blue: "#3b82f6",
-  text: "#e2e8f0",
-  muted: "#64748b",
-};
-
-function parseAdsTxt(raw) {
-  const lines = raw.split("\n");
-  const entries = new Set();
-  const duplicates = new Set();
-  const directives = [];
-  const seen = [];
-
-  for (let line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const noComment = trimmed.split("#")[0].trim();
-    if (!noComment) continue;
-
-    if (/^(inventorypartnerdomain|ownerdomain|managerdomain|subdomain)=/i.test(noComment)) {
-      directives.push(noComment.toLowerCase());
-      continue;
-    }
-
-    const normalized = noComment
-      .toLowerCase()
-      .replace(/\s*,\s*/g, ", ")
-      .replace(/\s+/g, " ")
-      .trim();
-    if (!normalized) continue;
-
-    if (entries.has(normalized)) {
-      duplicates.add(normalized);
-    } else {
-      entries.add(normalized);
-    }
-    seen.push(normalized);
-  }
-
-  return { entries, duplicates, directives, total: seen.length };
-}
-
-function getDomain(entry) {
-  return entry.split(",")[0].trim();
-}
-
-function Badge({ color, children }) {
-  return (
-    <span style={{
-      background: color + "22",
-      color,
-      border: `1px solid ${color}44`,
-      borderRadius: 6,
-      padding: "2px 10px",
-      fontSize: 12,
-      fontWeight: 700,
-    }}>
-      {children}
-    </span>
-  );
-}
-
-function StatBox({ label, value, color }) {
-  return (
-    <div style={{
-      background: COLORS.card,
-      border: `1px solid ${color}44`,
-      borderRadius: 10,
-      padding: "14px 20px",
-      textAlign: "center",
-      flex: 1,
-      minWidth: 100,
-    }}>
-      <div style={{ fontSize: 28, fontWeight: 800, color }}>{value}</div>
-      <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 2 }}>{label}</div>
-    </div>
-  );
-}
-
-function EntryList({ entries, color, filter }) {
-  const filtered = filter
-    ? entries.filter(e => e.includes(filter.toLowerCase()))
-    : entries;
-
-  if (!filtered.length) return (
-    <div style={{ color: COLORS.muted, fontSize: 13, padding: "12px 0" }}>
-      {entries.length === 0 ? "✓ Sin diferencias" : "Sin resultados para ese filtro"}
-    </div>
-  );
-
-  return (
-    <div style={{ maxHeight: 320, overflowY: "auto", marginTop: 8 }}>
-      {filtered.map((e, i) => (
-        <div key={i} style={{
-          fontFamily: "monospace",
-          fontSize: 12,
-          padding: "5px 10px",
-          borderRadius: 5,
-          marginBottom: 3,
-          background: color + "11",
-          borderLeft: `3px solid ${color}`,
-          color: COLORS.text,
-          wordBreak: "break-all",
-        }}>
-          {e}
-        </div>
-      ))}
-    </div>
-  );
-}
+import { COLORS } from "./theme";
+import { Badge, StatBox, EntryList } from "./components";
+import { parseAdsTxt, getDomain } from "./adstxt";
+import MultiSite from "./MultiSite";
 
 export default function App() {
+  const [mode, setMode] = useState("single");
   const [textA, setTextA] = useState("");
   const [textB, setTextB] = useState("");
   const [filter, setFilter] = useState("");
@@ -195,11 +82,37 @@ export default function App() {
           <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: "#fff" }}>
             📄 Ads.txt Validator
           </h1>
-          <p style={{ margin: "6px 0 0", color: COLORS.muted, fontSize: 14 }}>
-            En <b>A</b> pegá tus líneas de demanda. En <b>B</b> pegá el ads.txt completo del seller. Detectamos cuáles de tus líneas faltan en el archivo del seller.
+          <div style={{ display: "flex", gap: 4, marginTop: 12 }}>
+            {[["single", "Un seller"], ["multi", "Múltiples sitios"]].map(([id, label]) => (
+              <button key={id} onClick={() => setMode(id)} style={{
+                background: mode === id ? COLORS.accent : COLORS.card,
+                border: `1px solid ${mode === id ? COLORS.accent : COLORS.border}`,
+                color: mode === id ? "#fff" : COLORS.muted,
+                borderRadius: 8,
+                padding: "6px 16px",
+                cursor: "pointer",
+                fontSize: 13,
+                fontWeight: 600,
+              }}>
+                {label}
+              </button>
+            ))}
+          </div>
+          <p style={{ margin: "10px 0 0", color: COLORS.muted, fontSize: 14 }}>
+            {mode === "single" ? (
+              <>En <b>A</b> pegá tus líneas de demanda. En <b>B</b> pegá el ads.txt completo del seller. Detectamos cuáles de tus líneas faltan en el archivo del seller.</>
+            ) : (
+              <>En <b>A</b> pegá tus líneas de demanda. En <b>B</b> pegá la lista de sitios. Bajamos el ads.txt y/o app-ads.txt de cada sitio y te mostramos qué líneas faltan y dónde.</>
+            )}
           </p>
         </div>
 
+        {/* Hidden instead of unmounted so switching modes keeps each one's state */}
+        <div style={{ display: mode === "multi" ? "block" : "none" }}>
+          <MultiSite />
+        </div>
+
+        {mode === "single" && <>
         {/* Input panels */}
         {!compared && (
           <>
@@ -420,6 +333,7 @@ export default function App() {
             )}
           </>
         )}
+        </>}
       </div>
     </div>
   );
