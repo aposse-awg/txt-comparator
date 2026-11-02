@@ -1,7 +1,8 @@
-// Vite plugin that exposes GET /api/adstxt?domain=example.com&file=ads.txt.
-// The browser can't fetch other sites' ads.txt because of CORS, so the dev /
-// preview server downloads it and hands back the body as JSON.
-// `file` is ads.txt (default) or app-ads.txt.
+// GET /api/adstxt?domain=example.com&file=ads.txt
+// The browser can't fetch other sites' ads.txt because of CORS, so the server
+// downloads it and hands back the body as JSON. `file` is ads.txt (default)
+// or app-ads.txt. Served by the Vite plugin below locally and by
+// api/adstxt.js on Vercel.
 
 const TIMEOUT_MS = 15000
 const DOMAIN_RE = /^[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z][a-z0-9-]+$/
@@ -42,10 +43,8 @@ async function fetchAdsTxt(domain, file) {
   return { ok: false, error: describeError(lastError) }
 }
 
-async function handler(req, res, next) {
+export async function handleAdsTxtRequest(req, res) {
   const url = new URL(req.url, 'http://localhost')
-  if (url.pathname !== '/api/adstxt') return next()
-
   const domain = (url.searchParams.get('domain') || '').trim().toLowerCase()
   const file = url.searchParams.get('file') || 'ads.txt'
   let result
@@ -57,14 +56,19 @@ async function handler(req, res, next) {
   res.end(JSON.stringify({ domain, file, ...result }))
 }
 
+function middleware(req, res, next) {
+  if (new URL(req.url, 'http://localhost').pathname !== '/api/adstxt') return next()
+  return handleAdsTxtRequest(req, res)
+}
+
 export default function adsTxtProxy() {
   return {
     name: 'adstxt-proxy',
     configureServer(server) {
-      server.middlewares.use(handler)
+      server.middlewares.use(middleware)
     },
     configurePreviewServer(server) {
-      server.middlewares.use(handler)
+      server.middlewares.use(middleware)
     },
   }
 }
